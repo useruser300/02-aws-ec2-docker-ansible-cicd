@@ -1,0 +1,43 @@
+---
+- name: Deploy Nginx Docker container
+  hosts: web
+  become: yes
+
+  vars:
+    container_name: my-nginx-app
+    app_port: 80
+
+  tasks:
+    - name: Install Docker
+      yum:
+        name: docker
+        state: present
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Login to Amazon ECR
+      shell: |
+        aws ecr get-login-password --region eu-central-1 | \
+        docker login --username AWS --password-stdin "{{ ecr_repository_url }}"
+
+    - name: Pull Docker image
+      shell: docker pull "{{ ecr_repository_url }}:{{ image_tag }}"
+
+    - name: Stop old container if exists
+      shell: docker stop "{{ container_name }}"
+      ignore_errors: yes
+
+    - name: Remove old container if exists
+      shell: docker rm "{{ container_name }}"
+      ignore_errors: yes
+
+    - name: Run new container
+      shell: |
+        docker run -d \
+          --name "{{ container_name }}" \
+          -p {{ app_port }}:80 \
+          "{{ ecr_repository_url }}:{{ image_tag }}"

@@ -64,37 +64,33 @@ jobs:
           echo "INSTANCE_ID=$INSTANCE_ID" >> "$GITHUB_ENV"
           echo "ECR_REPOSITORY_URL=$ECR_REPOSITORY_URL" >> "$GITHUB_ENV"
 
-      - name: Deploy Docker Container to EC2
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Prepare SSH Key
+        run: |
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > github-key.pem
+          chmod 400 github-key.pem
+
+      - name: Create Ansible Inventory
         run: |
           PUBLIC_IP=$(aws ec2 describe-instances \
             --instance-ids "$INSTANCE_ID" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text)
 
-          echo "${{ secrets.EC2_PRIVATE_KEY }}" > github-key.pem
-          chmod 400 github-key.pem
+          echo "[web]" > inventory.ini
+          echo "$PUBLIC_IP ansible_user=ec2-user ansible_ssh_private_key_file=github-key.pem ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory.ini
 
-          ssh -o StrictHostKeyChecking=no -i github-key.pem ec2-user@"$PUBLIC_IP" << EOF
-            if ! command -v docker &> /dev/null; then
-              sudo yum update -y
-              sudo yum install docker -y
-              sudo systemctl start docker
-              sudo systemctl enable docker
-              sudo usermod -aG docker ec2-user
-            fi
+          echo "PUBLIC_IP=$PUBLIC_IP" >> "$GITHUB_ENV"
 
-            aws ecr get-login-password --region eu-central-1 | \
-              sudo docker login --username AWS --password-stdin "$ECR_REPOSITORY_URL"
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i inventory.ini ansible/deploy.yml \
+            --extra-vars "ecr_repository_url=$ECR_REPOSITORY_URL image_tag=$IMAGE_TAG"
 
-            sudo docker pull "$ECR_REPOSITORY_URL:$IMAGE_TAG"
-
-            sudo docker stop my-nginx-app 2>/dev/null || true
-            sudo docker rm my-nginx-app 2>/dev/null || true
-
-            sudo docker run -d \
-              --name my-nginx-app \
-              -p 80:80 \
-              "$ECR_REPOSITORY_URL:$IMAGE_TAG"
-          EOF
-
+      - name: Print Application URL
+        run: |
           echo "App is now accessible at: http://$PUBLIC_IP"
