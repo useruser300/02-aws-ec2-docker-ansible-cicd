@@ -2,7 +2,6 @@
 - name: Deploy Nginx Docker container to EC2
   hosts: web
   become: true
-  gather_facts: false
 
   vars:
     container_name: my-nginx-app
