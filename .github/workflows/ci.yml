@@ -13,44 +13,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  check:
-    name: Check Whether CI Should Run
-    runs-on: ubuntu-latest
-    outputs:
-      skip_ci: ${{ steps.detect.outputs.skip_ci }}
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect Terraform Changes
-        id: detect
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Manual CI run."
-            echo "skip_ci=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} || true)
-
-          if echo "$CHANGED_FILES" | grep -qE '(^|/).+\.tf$|^terraform.tfvars$'; then
-            echo "Terraform files changed in the same push."
-            echo "CI will not run automatically."
-            echo "Run CI manually after infrastructure is ready."
-            echo "skip_ci=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Only application files changed. CI can run."
-            echo "skip_ci=false" >> "$GITHUB_OUTPUT"
-          fi
-
   docker:
     name: Docker Image Build and Push
     runs-on: ubuntu-latest
-    needs: check
-    if: ${{ needs.check.outputs.skip_ci == 'false' }}
 
     steps:
       - name: Checkout Code
