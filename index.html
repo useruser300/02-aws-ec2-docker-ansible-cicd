@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nginx App - Deployed with CI/CD</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a, #1e3a8a);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 700px;
+      padding: 40px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 1.2rem;
+      line-height: 1.7;
+      margin-bottom: 30px;
+      color: #e5e7eb;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background-color: #22c55e;
+      color: #052e16;
+      font-weight: bold;
+      margin-bottom: 25px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      background-color: #38bdf8;
+      color: #0f172a;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 999px;
+      transition: 0.3s;
+    }
+
+    .btn:hover {
+      background-color: #7dd3fc;
+      transform: translateY(-3px);
+    }
+
+    footer {
+      margin-top: 35px;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="badge">Deployment Successful</div>
+
+    <h1>Hello from Nginx!</h1>
+
+    <p>
+      This web application is running inside an Nginx server and deployed using
+      AWS, Docker, Terraform, and GitHub Actions CI/CD.
+    </p>
+
+    <a href="#" class="btn">View Project</a>
+
+    <footer>
+      &copy; 2026 Nginx CI/CD Demo. Built for Cloud & DevOps practice.
+    </footer>
+  </div>
+</body>
+</html>
