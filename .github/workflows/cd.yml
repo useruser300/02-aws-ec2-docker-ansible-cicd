@@ -15,7 +15,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to EC2
+    name: Deploy to EC2 with Ansible
     runs-on: ubuntu-latest
     if: >-
       ${{
@@ -64,6 +64,20 @@ jobs:
           echo "INSTANCE_ID=$INSTANCE_ID" >> "$GITHUB_ENV"
           echo "ECR_REPOSITORY_URL=$ECR_REPOSITORY_URL" >> "$GITHUB_ENV"
 
+      - name: Get EC2 Public IP
+        run: |
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text)
+
+          if [ -z "$PUBLIC_IP" ]; then
+            echo "Error: Failed to get EC2 public IP."
+            exit 1
+          fi
+
+          echo "PUBLIC_IP=$PUBLIC_IP" >> "$GITHUB_ENV"
+
       - name: Install Ansible
         run: |
           sudo apt-get update
@@ -76,20 +90,21 @@ jobs:
 
       - name: Create Ansible Inventory
         run: |
-          PUBLIC_IP=$(aws ec2 describe-instances \
-            --instance-ids "$INSTANCE_ID" \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text)
-
-          echo "[web]" > inventory.ini
-          echo "$PUBLIC_IP ansible_user=ec2-user ansible_ssh_private_key_file=github-key.pem ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory.ini
-
-          echo "PUBLIC_IP=$PUBLIC_IP" >> "$GITHUB_ENV"
+          cat > inventory.ini << EOF
+          [web]
+          $PUBLIC_IP ansible_user=ec2-user ansible_ssh_private_key_file=github-key.pem
+          EOF
 
       - name: Run Ansible Playbook
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
-          ansible-playbook -i inventory.ini ansible/deploy.yml \
-            --extra-vars "ecr_repository_url=$ECR_REPOSITORY_URL image_tag=$IMAGE_TAG"
+          ansible-playbook \
+            -i inventory.ini \
+            ansible/deploy.yml \
+            -e "aws_region=eu-central-1" \
+            -e "ecr_repository_url=$ECR_REPOSITORY_URL" \
+            -e "image_tag=$IMAGE_TAG"
 
       - name: Print Application URL
         run: |
